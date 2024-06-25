@@ -21,7 +21,7 @@
             },
             "assembler": {
                 "type": "string",
-                "pattern": "MEGAHIT|SPAdes|SPAdesHybrid",
+                "pattern": "MEGAHIT|SPAdes|SPAdesHybrid|OPERAMS",
                 "meta": ["assembler"],
                 "errorMessage": "Only MEGAHIT or SPAdes assemblies are supported"
             },

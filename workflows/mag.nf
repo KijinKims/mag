@@ -56,7 +56,7 @@ include { BOWTIE2_REMOVAL_BUILD as BOWTIE2_HOST_REMOVAL_BUILD } from '../modules
 include { BOWTIE2_REMOVAL_ALIGN as BOWTIE2_HOST_REMOVAL_ALIGN } from '../modules/local/bowtie2_removal_align'
 include { BOWTIE2_REMOVAL_BUILD as BOWTIE2_PHIX_REMOVAL_BUILD } from '../modules/local/bowtie2_removal_build'
 include { BOWTIE2_REMOVAL_ALIGN as BOWTIE2_PHIX_REMOVAL_ALIGN } from '../modules/local/bowtie2_removal_align'
-include { PORECHOP                                            } from '../modules/local/porechop'
+include { PORECHOP_ABI                                        } from '../modules/nf-core/porechop/abi/main'
 include { NANOLYSE                                            } from '../modules/local/nanolyse'
 include { FILTLONG                                            } from '../modules/local/filtlong'
 include { NANOPLOT as NANOPLOT_RAW                            } from '../modules/local/nanoplot'
@@ -69,6 +69,7 @@ include { POOL_SINGLE_READS as POOL_LONG_READS                } from '../modules
 include { MEGAHIT                                             } from '../modules/local/megahit'
 include { SPADES                                              } from '../modules/local/spades'
 include { SPADESHYBRID                                        } from '../modules/local/spadeshybrid'
+include { OPERAMS                                        } from '../modules/local/operams'
 include { QUAST                                               } from '../modules/local/quast'
 include { QUAST_BINS                                          } from '../modules/local/quast_bins'
 include { QUAST_BINS_SUMMARY                                  } from '../modules/local/quast_bins_summary'
@@ -369,11 +370,11 @@ workflow MAG {
 
     if ( !params.assembly_input ) {
         if (!params.skip_adapter_trimming) {
-            PORECHOP (
+            PORECHOP_ABI (
                 ch_raw_long_reads
             )
-            ch_long_reads = PORECHOP.out.reads
-            ch_versions = ch_versions.mix(PORECHOP.out.versions.first())
+            ch_long_reads = PORECHOP_ABI.out.reads
+            ch_versions = ch_versions.mix(PORECHOP_ABI.out.versions.first())
         }
 
         if (!params.keep_lambda) {
@@ -557,7 +558,7 @@ workflow MAG {
         }
 
         // Co-assembly: pool reads for SPAdes
-        if ( ! params.skip_spades || ! params.skip_spadeshybrid ){
+        if ( ! params.skip_spades || ! params.skip_spadeshybrid || ! params.skip_operams){
             if ( params.coassemble_group ) {
                 if ( params.bbnorm ) {
                     ch_short_reads_spades = ch_short_reads_grouped.map { [ it[0], it[1] ] }
@@ -616,6 +617,29 @@ workflow MAG {
                 }
             ch_assemblies = ch_assemblies.mix(ch_spadeshybrid_assemblies)
             ch_versions = ch_versions.mix(SPADESHYBRID.out.versions.first())
+        }
+
+        if (!params.single_end && !params.skip_operams){
+
+            MEGAHIT ( ch_short_reads_grouped )
+            ch_megahit_assemblies = MEGAHIT.out.assembly
+
+            ch_short_reads_operams_tmp = ch_short_reads_spades
+                .map { meta, reads -> [ meta.id, meta, reads ] }
+
+            ch_reads_operams = ch_long_reads_spades
+                .map { meta, reads -> [ meta.id, meta, reads ] }
+                .combine(ch_short_reads_operams_tmp, by: 0)
+                .map { id, meta_long, long_reads, meta_short, short_reads -> [ meta_short, long_reads, short_reads ] }
+
+            OPERAMS ( ch_megahit_assemblies, ch_reads_operams )
+            ch_operams_assemblies = OPERAMS.out.assembly
+                .map { meta, assembly ->
+                    def meta_new = meta + [assembler: "OPERAMS"]
+                    [ meta_new, assembly ]
+                }
+            ch_assemblies = ch_assemblies.mix(ch_operams_assemblies)
+            ch_versions = ch_versions.mix(OPERAMS.out.versions.first())
         }
     } else {
         ch_assemblies_split = ch_input_assemblies

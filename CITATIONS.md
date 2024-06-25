@@ -114,7 +114,9 @@
 
   > De Coster, W., D’Hert, S., Schultz, D. T., Cruts, M., & Van Broeckhoven, C. (2018). NanoPack: visualizing and processing long-read sequencing data. Bioinformatics, 34(15), 2666-2669. doi: 10.1093/bioinformatics/bty149.
 
-- [Porechop](https://github.com/rrwick/Porechop)
+- [Porechop_ABI](https://github.com/bonsai-team/Porechop_ABI)
+
+  > Bonenfant, Q., Noé, L., & Touzet, H. (2023). Porechop_ABI: discovering unknown adapters in Oxford Nanopore Technology sequencing reads for downstream trimming. Bioinformatics Advances, 3(1). https://doi.org/10.1093/bioadv/vbac085
 
 - [Prodigal](https://pubmed.ncbi.nlm.nih.gov/20211023/)
 
